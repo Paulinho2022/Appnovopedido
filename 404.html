@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>OrderFlow - Gestão de Pedidos</title>
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- Font Awesome -->
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial,sans-serif;
+}
+
+body{
+  background:#0b1020;
+  color:white;
+  padding:20px;
+}
+
+.container{
+  max-width:1300px;
+  margin:auto;
+}
+
+h1{
+  text-align:center;
+  font-size:38px;
+  color:#8bb3ff;
+  margin-bottom:10px;
+}
+
+.sub{
+  text-align:center;
+  color:#94a3b8;
+  margin-bottom:30px;
+}
+
+.card{
+  background:#111827;
+  border:1px solid #1f2937;
+  border-radius:20px;
+  padding:25px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.3);
+}
+
+.table-wrapper{
+  overflow-x:auto;
+  max-height:70vh;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th{
+  background:#0f172a;
+  color:#cbd5e1;
+  padding:16px;
+  border-bottom:1px solid #334155;
+  position:sticky;
+  top:0;
+}
+
+td{
+  padding:14px;
+  border-bottom:1px solid #1f2937;
+  text-align:center;
+}
+
+tr:hover td{
+  background:#172036;
+}
+
+.produto{
+  text-align:left;
+  font-weight:bold;
+}
+
+.qty-controls{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+}
+
+.qty-btn{
+  width:36px;
+  height:36px;
+  border:none;
+  border-radius:50%;
+  color:white;
+  font-size:18px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.qty-btn:hover{
+  transform:scale(1.08);
+}
+
+.qty-minus{
+  background:#dc2626;
+}
+
+.qty-plus{
+  background:#16a34a;
+}
+
+select{
+  background:#0f172a;
+  color:white;
+  border:1px solid #334155;
+  padding:10px 14px;
+  border-radius:12px;
+}
+
+.footer{
+  margin-top:25px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:15px;
+}
+
+.buttons{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.contador{
+  background:#0f172a;
+  padding:12px 18px;
+  border-radius:40px;
+  color:#cbd5e1;
+  font-weight:bold;
+}
+
+.btn{
+  border:none;
+  color:white;
+  padding:14px 24px;
+  border-radius:14px;
+  font-size:15px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.btn:hover{
+  transform:translateY(-2px);
+}
+
+.btn-save{
+  background:#2563eb;
+}
+
+.btn-save:hover{
+  background:#1d4ed8;
+}
+
+.btn-pdf{
+  background:#16a34a;
+}
+
+.btn-pdf:hover{
+  background:#15803d;
+}
+
+.status-add{
+  color:#22c55e;
+  font-weight:bold;
+}
+
+.status-empty{
+  color:#64748b;
+}
+
+.add-box{
+  display:flex;
+  gap:12px;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+.add-box input{
+  flex:1;
+  min-width:220px;
+  background:#0f172a;
+  border:1px solid #334155;
+  color:white;
+  padding:14px;
+  border-radius:12px;
+}
+
+@media(max-width:700px){
+
+  body{
+    padding:12px;
+  }
+
+  h1{
+    font-size:28px;
+  }
+
+  table{
+    font-size:13px;
+  }
+
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1>
+    <i class="fas fa-boxes-stacked"></i>
+    OrderFlow
+  </h1>
+
+  <div class="sub">
+    Gestão inteligente de pedidos
+  </div>
+
+  <div class="card">
+
+    <!-- NOVO ITEM -->
+    <div class="add-box">
+
+      <input
+        type="text"
+        id="novoProduto"
+        placeholder="Adicionar novo item"
+      >
+
+      <div class="qty-controls">
+
+        <button
+          class="qty-btn qty-minus"
+          onclick="alterarQtdNovo(-1)">
+          -
+        </button>
+
+        <span id="novaQuantidade">0</span>
+
+        <button
+          class="qty-btn qty-plus"
+          onclick="alterarQtdNovo(1)">
+          +
+        </button>
+
+      </div>
+
+      <select id="novoTipo">
+
+        <option value="UND">UND</option>
+        <option value="CX">CX</option>
+        <option value="FD">FD</option>
+        <option value="MIL">MIL</option>
+        <option value="KG">KG</option>
+
+      </select>
+
+      <button
+        class="btn btn-save"
+        onclick="adicionarProduto()">
+
+        <i class="fas fa-plus"></i>
+        Adicionar
+
+      </button>
+
+    </div>
+
+    <!-- TABELA -->
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>Produto</th>
+            <th>Quantidade</th>
+            <th>Tipo</th>
+            <th>Status</th>
+          </tr>
+
+        </thead>
+
+        <tbody id="listaPedidos"></tbody>
+
+      </table>
+
+    </div>
+
+    <!-- RODAPÉ -->
+    <div class="footer">
+
+      <div class="contador" id="contadorItens">
+        0 itens
+      </div>
+
+      <div class="buttons">
+
+        <button
+          class="btn btn-save"
+          onclick="salvarPadraoTipos()">
+
+          <i class="fas fa-floppy-disk"></i>
+          Salvar Padrão
+
+        </button>
+
+        <button
+          class="btn btn-pdf"
+          onclick="exportarPDF()">
+
+          <i class="fas fa-file-pdf"></i>
+          Exportar PDF
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+// LOCAL STORAGE
+let pedidos = JSON.parse(
+  localStorage.getItem("orderflow_pedidos")
+);
+
+// PRIMEIRO ACESSO
+if(!pedidos){
+  pedidos = [];
+}
+
+const listaPedidos =
+document.getElementById("listaPedidos");
+
+const contadorItens =
+document.getElementById("contadorItens");
+
+// QUANTIDADE NOVO ITEM
+let quantidadeNovoItem = 0;
+
+// ALTERAR QUANTIDADE NOVO ITEM
+function alterarQtdNovo(valor){
+
+  quantidadeNovoItem += valor;
+
+  if(quantidadeNovoItem < 0){
+    quantidadeNovoItem = 0;
+  }
+
+  document.getElementById(
+    "novaQuantidade"
+  ).innerText = quantidadeNovoItem;
+
+}
+
+// ADICIONAR PRODUTO
+function adicionarProduto(){
+
+  const input =
+  document.getElementById("novoProduto");
+
+  const tipo =
+  document.getElementById("novoTipo").value;
+
+  const nome =
+  input.value.trim();
+
+  if(!nome){
+
+    alert("Digite um nome para o item.");
+    return;
+
+  }
+
+  pedidos.push({
+    produto:nome,
+    quantidade:quantidadeNovoItem,
+    tipo:tipo
+  });
+
+  salvarDados();
+
+  renderizarPedidos();
+
+  input.value = "";
+
+  quantidadeNovoItem = 0;
+
+  document.getElementById(
+    "novaQuantidade"
+  ).innerText = 0;
+
+  document.getElementById(
+    "novoTipo"
+  ).value = "UND";
+
+}
+
+// RENDERIZAR PEDIDOS
+function renderizarPedidos(){
+
+  listaPedidos.innerHTML = "";
+
+  pedidos.forEach((item,index)=>{
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+
+      <td class="produto">
+        <i class="fas fa-box"></i>
+        ${item.produto}
+      </td>
+
+      <td>
+
+        <div class="qty-controls">
+
+          <button
+            class="qty-btn qty-minus"
+            onclick="alterarQuantidade(${index}, -1)">
+            -
+          </button>
+
+          <span>${item.quantidade}</span>
+
+          <button
+            class="qty-btn qty-plus"
+            onclick="alterarQuantidade(${index}, 1)">
+            +
+          </button>
+
+        </div>
+
+      </td>
+
+      <td>
+
+        <select onchange="alterarTipo(${index}, this.value)">
+
+          <option value="UND"
+            ${item.tipo === 'UND' ? 'selected' : ''}>
+            UND
+          </option>
+
+          <option value="CX"
+            ${item.tipo === 'CX' ? 'selected' : ''}>
+            CX
+          </option>
+
+          <option value="FD"
+            ${item.tipo === 'FD' ? 'selected' : ''}>
+            FD
+          </option>
+
+          <option value="MIL"
+            ${item.tipo === 'MIL' ? 'selected' : ''}>
+            MIL
+          </option>
+
+          <option value="KG"
+            ${item.tipo === 'KG' ? 'selected' : ''}>
+            KG
+          </option>
+
+        </select>
+
+      </td>
+
+      <td>
+
+        ${
+          item.quantidade > 0
+          ? '<span class="status-add">Adicionado</span>'
+          : '<span class="status-empty">---</span>'
+        }
+
+      </td>
+
+    `;
+
+    listaPedidos.appendChild(tr);
+
+  });
+
+  const total =
+  pedidos.reduce((acc,item)=>
+    acc + item.quantidade,0);
+
+  contadorItens.innerText =
+  `${total} itens`;
+
+}
+
+// ALTERAR QUANTIDADE
+function alterarQuantidade(index, valor){
+
+  pedidos[index].quantidade += valor;
+
+  if(pedidos[index].quantidade < 0){
+    pedidos[index].quantidade = 0;
+  }
+
+  salvarDados();
+
+  renderizarPedidos();
+
+}
+
+// ALTERAR TIPO
+function alterarTipo(index, tipo){
+
+  pedidos[index].tipo = tipo;
+
+  salvarDados();
+
+}
+
+// SALVAR DADOS
+function salvarDados(){
+
+  localStorage.setItem(
+    "orderflow_pedidos",
+    JSON.stringify(pedidos)
+  );
+
+}
+
+// SALVAR PADRÃO
+function salvarPadraoTipos(){
+
+  const padroes = pedidos.map(item => ({
+    produto:item.produto,
+    tipo:item.tipo
+  }));
+
+  localStorage.setItem(
+    "orderflow_padrao_tipos",
+    JSON.stringify(padroes)
+  );
+
+  alert("Padrões salvos com sucesso!");
+
+}
+
+// EXPORTAR PDF
+function exportarPDF(){
+
+  const selecionados =
+  pedidos.filter(item => item.quantidade > 0);
+
+  if(selecionados.length === 0){
+
+    alert("Nenhum item adicionado.");
+    return;
+
+  }
+
+  const { jsPDF } = window.jspdf;
+
+  const pdf =
+  new jsPDF("p","mm","a4");
+
+  // TÍTULO
+  pdf.setFontSize(22);
+  pdf.setTextColor(37,99,235);
+
+  pdf.text(
+    "Lista de Pedidos",
+    14,
+    20
+  );
+
+  // DATA
+  pdf.setFontSize(11);
+
+  pdf.setTextColor(100);
+
+  pdf.text(
+    "Gerado em: " +
+    new Date().toLocaleString("pt-BR"),
+    14,
+    28
+  );
+
+  // LINHA
+  pdf.setDrawColor(200);
+
+  pdf.line(
+    14,
+    32,
+    196,
+    32
+  );
+
+  // CABEÇALHO
+  let y = 42;
+
+  pdf.setFillColor(37,99,235);
+
+  pdf.rect(
+    14,
+    y - 6,
+    182,
+    10,
+    "F"
+  );
+
+  pdf.setTextColor(255);
+
+  pdf.setFontSize(12);
+
+  pdf.text(
+    "Produto",
+    18,
+    y
+  );
+
+  pdf.text(
+    "Quantidade",
+    150,
+    y
+  );
+
+  y += 12;
+
+  // ITENS
+  pdf.setTextColor(20);
+
+  selecionados.forEach((item)=>{
+
+    // NOVA PÁGINA
+    if(y > 270){
+
+      pdf.addPage();
+
+      y = 20;
+
+    }
+
+    // BORDA
+    pdf.setDrawColor(220);
+
+    pdf.rect(
+      14,
+      y - 6,
+      182,
+      10
+    );
+
+    // PRODUTO
+    pdf.text(
+      item.produto,
+      18,
+      y
+    );
+
+    // QUANTIDADE
+    pdf.text(
+      `${item.quantidade} ${item.tipo}`,
+      150,
+      y
+    );
+
+    y += 12;
+
+  });
+
+  // SALVAR
+  pdf.save(
+    "pedido-orderflow.pdf"
+  );
+
+  // LIMPA LISTA
+  pedidos = [];
+
+  salvarDados();
+
+  renderizarPedidos();
+
+  alert(
+    "PDF exportado com sucesso!"
+  );
+
+}
+
+// INICIAR
+renderizarPedidos();
+
+</script>
+
+</body>
+</html>
